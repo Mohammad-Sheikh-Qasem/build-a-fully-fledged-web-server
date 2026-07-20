@@ -3,7 +3,7 @@ import express from "express";
 
 const app = express();
 
-cosnt PORT = 8080;
+const PORT = 8080;
 
 app.use(express.static("."));
 
