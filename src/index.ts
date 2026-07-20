@@ -1,6 +1,6 @@
 import express from "express";
 
 
-cosnt app = express();
+const app = express();
 
 app.listen(8080);
