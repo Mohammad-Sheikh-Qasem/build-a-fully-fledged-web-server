@@ -34,12 +34,18 @@ app.get("/api/healthz", (req: Request, res: Response) => {
   res.send("OK");
 });
 
-app.get("/api/metrics", (req: Request, res: Response) => {
-  res.setHeader("Content-Type", "text/plain; charset=utf-8");
-  res.send(`Hits: ${apiConfig.fileserverHits}`);
+
+app.get("/admin/metrics", (req: Request, res: Response) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(`<html>
+  <body>
+    <h1>Welcome, Chirpy Admin</h1>
+    <p>Chirpy has been visited ${apiConfig.fileserverHits} times!</p>
+  </body>
+</html>`);
 });
 
-app.get("/api/reset", (req: Request, res: Response) => {
+app.get("/admin/reset", (req: Request, res: Response) => {
   apiConfig.fileserverHits = 0;
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.send("Hits reset to 0");
