@@ -29,17 +29,17 @@ app.use("/app", middlewareMetricsInc);
 app.use("/app", express.static("./src/app"));
 
 
-app.get("/healthz", (req: Request, res: Response) => {
+app.get("/api/healthz", (req: Request, res: Response) => {
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.send("OK");
 });
 
-app.get("/metrics", (req: Request, res: Response) => {
+app.get("/api/metrics", (req: Request, res: Response) => {
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.send(`Hits: ${apiConfig.fileserverHits}`);
 });
 
-app.get("/reset", (req: Request, res: Response) => {
+app.get("/api/reset", (req: Request, res: Response) => {
   apiConfig.fileserverHits = 0;
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.send("Hits reset to 0");
