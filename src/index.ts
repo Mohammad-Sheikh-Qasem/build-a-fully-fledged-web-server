@@ -45,7 +45,7 @@ app.get("/admin/metrics", (req: Request, res: Response) => {
 </html>`);
 });
 
-app.get("/admin/reset", (req: Request, res: Response) => {
+app.post("/admin/reset", (req: Request, res: Response) => {
   apiConfig.fileserverHits = 0;
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.send("Hits reset to 0");
