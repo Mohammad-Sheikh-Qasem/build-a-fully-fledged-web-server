@@ -5,6 +5,7 @@ import { apiConfig } from "./config.js";
 const app = express();
 const PORT = 8080;
 
+app.use(express.json());
 
 export const middlewareLogResponses = (req: Request, res: Response, next: NextFunction) => {
   res.on("finish", () => {
@@ -18,22 +19,18 @@ export const middlewareLogResponses = (req: Request, res: Response, next: NextFu
 
 app.use(middlewareLogResponses);
 
-
 export function middlewareMetricsInc(req: Request, res: Response, next: NextFunction) {
   apiConfig.fileserverHits++;
   next();
 }
 
-
 app.use("/app", middlewareMetricsInc);
 app.use("/app", express.static("./src/app"));
-
 
 app.get("/api/healthz", (req: Request, res: Response) => {
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.send("OK");
 });
-
 
 app.get("/admin/metrics", (req: Request, res: Response) => {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -51,6 +48,19 @@ app.post("/admin/reset", (req: Request, res: Response) => {
   res.send("Hits reset to 0");
 });
 
+app.post("/api/validate_chirp", (req: Request, res: Response) => {
+  const body = req.body?.body;
+
+  if (!body || typeof body !== "string" || body.length > 140) {
+    return res.status(400).json({
+      error: "Chirp is too long"
+    });
+  }
+
+  return res.status(200).json({
+    valid: true
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
