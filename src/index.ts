@@ -48,17 +48,14 @@ app.post("/admin/reset", (req: Request, res: Response) => {
   res.send("Hits reset to 0");
 });
 
-app.post("/api/validate_chirp", (req: Request, res: Response) => {
+app.post("/api/validate_chirp", async (req: Request, res: Response) => {
   const body = req.body?.body;
 
   if (!body || typeof body !== "string" || body.length > 140) {
-    return res.status(400).json({
-      error: "Chirp is too long"
-    });
+    throw new Error("Chirp is too long");
   }
 
   const badWords = ["kerfuffle", "sharbert", "fornax"];
-
   const words = body.split(" ");
   const cleanedWords = words.map((word) => {
     if (badWords.includes(word.toLowerCase())) {
@@ -73,6 +70,14 @@ app.post("/api/validate_chirp", (req: Request, res: Response) => {
     cleanedBody: cleanedBody
   });
 });
+
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.log(err);
+  return res.status(500).json({
+    error: "Something went wrong on our end"
+  });
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
