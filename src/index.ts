@@ -57,8 +57,20 @@ app.post("/api/validate_chirp", (req: Request, res: Response) => {
     });
   }
 
+  const badWords = ["kerfuffle", "sharbert", "fornax"];
+
+  const words = body.split(" ");
+  const cleanedWords = words.map((word) => {
+    if (badWords.includes(word.toLowerCase())) {
+      return "****";
+    }
+    return word;
+  });
+
+  const cleanedBody = cleanedWords.join(" ");
+
   return res.status(200).json({
-    valid: true
+    cleanedBody: cleanedBody
   });
 });
 
