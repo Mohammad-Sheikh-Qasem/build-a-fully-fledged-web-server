@@ -2,6 +2,30 @@ import express from "express";
 import { Request, Response, NextFunction } from "express";
 import { apiConfig } from "./config.js";
 
+export class BadRequestError extends Error {
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+export class UnauthorizedError extends Error {
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+export class ForbiddenError extends Error {
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+export class NotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+  }
+}
+
 const app = express();
 const PORT = 8080;
 
@@ -52,7 +76,7 @@ app.post("/api/validate_chirp", async (req: Request, res: Response) => {
   const body = req.body?.body;
 
   if (!body || typeof body !== "string" || body.length > 140) {
-    throw new Error("Chirp is too long");
+    throw new BadRequestError("Chirp is too long. Max length is 140");
   }
 
   const badWords = ["kerfuffle", "sharbert", "fornax"];
@@ -72,12 +96,24 @@ app.post("/api/validate_chirp", async (req: Request, res: Response) => {
 });
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof BadRequestError) {
+    return res.status(400).json({ error: err.message });
+  }
+  if (err instanceof UnauthorizedError) {
+    return res.status(401).json({ error: err.message });
+  }
+  if (err instanceof ForbiddenError) {
+    return res.status(403).json({ error: err.message });
+  }
+  if (err instanceof NotFoundError) {
+    return res.status(404).json({ error: err.message });
+  }
+
   console.log(err);
   return res.status(500).json({
     error: "Something went wrong on our end"
   });
 });
-
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
