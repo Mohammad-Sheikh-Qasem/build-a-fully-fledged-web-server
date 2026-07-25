@@ -1,15 +1,13 @@
 import express from "express";
 import { Request, Response, NextFunction } from "express";
-import { apiConfig } from "./config.js";
 import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { config } from "./config.js";
+import { config, apiConfig } from "./config.js";
+import { createUser, resetUsers } from "./db/queries/users.js";
 
 const migrationClient = postgres(config.db.url, { max: 1 });
 await migrate(drizzle(migrationClient), config.db.migrationConfig);
-
-
 
 export class BadRequestError extends Error {
   constructor(message: string) {
@@ -75,10 +73,34 @@ app.get("/admin/metrics", (req: Request, res: Response) => {
 </html>`);
 });
 
-app.post("/admin/reset", (req: Request, res: Response) => {
-  apiConfig.fileserverHits = 0;
-  res.setHeader("Content-Type", "text/plain; charset=utf-8");
-  res.send("Hits reset to 0");
+app.post("/admin/reset", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (apiConfig.platform !== "dev") {
+      throw new ForbiddenError("Reset is only allowed in dev environment");
+    }
+
+    apiConfig.fileserverHits = 0;
+    await resetUsers();
+
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    return res.status(200).send("Hits reset to 0 and users cleared");
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post("/api/users", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      throw new BadRequestError("Email is required");
+    }
+
+    const newUser = await createUser({ email });
+    return res.status(201).json(newUser);
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.post("/api/validate_chirp", async (req: Request, res: Response) => {
