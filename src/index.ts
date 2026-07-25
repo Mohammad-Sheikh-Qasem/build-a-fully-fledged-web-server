@@ -5,7 +5,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { config, apiConfig } from "./config.js";
 import { createUser, resetUsers } from "./db/queries/users.js";
-import { createChirp, getAllChirps } from "./db/queries/chirps.js";
+import { createChirp, getAllChirps, getChirpById } from "./db/queries/chirps.js";
 
 const migrationClient = postgres(config.db.url, { max: 1 });
 await migrate(drizzle(migrationClient), config.db.migrationConfig);
@@ -141,6 +141,22 @@ app.get("/api/chirps", async (req: Request, res: Response, next: NextFunction) =
   try {
     const allChirps = await getAllChirps();
     return res.status(200).json(allChirps);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get("/api/chirps/:chirpId", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const chirpId = req.params.chirpId as string;
+
+    const chirp = await getChirpById(chirpId);
+
+    if (!chirp) {
+      throw new NotFoundError("Chirp not found");
+    }
+
+    return res.status(200).json(chirp);
   } catch (err) {
     next(err);
   }
