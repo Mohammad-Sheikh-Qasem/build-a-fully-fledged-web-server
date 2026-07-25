@@ -1,6 +1,15 @@
 import express from "express";
 import { Request, Response, NextFunction } from "express";
 import { apiConfig } from "./config.js";
+import postgres from "postgres";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { config } from "./config.js";
+
+const migrationClient = postgres(config.db.url, { max: 1 });
+await migrate(drizzle(migrationClient), config.db.migrationConfig);
+
+
 
 export class BadRequestError extends Error {
   constructor(message: string) {
