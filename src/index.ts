@@ -5,6 +5,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { config, apiConfig } from "./config.js";
 import { createUser, resetUsers } from "./db/queries/users.js";
+import { createChirp } from "./db/queries/chirps.js";
 
 const migrationClient = postgres(config.db.url, { max: 1 });
 await migrate(drizzle(migrationClient), config.db.migrationConfig);
@@ -103,27 +104,37 @@ app.post("/api/users", async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
-app.post("/api/validate_chirp", async (req: Request, res: Response) => {
-  const body = req.body?.body;
+app.post("/api/chirps", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { body, userId } = req.body;
 
-  if (!body || typeof body !== "string" || body.length > 140) {
-    throw new BadRequestError("Chirp is too long. Max length is 140");
-  }
-
-  const badWords = ["kerfuffle", "sharbert", "fornax"];
-  const words = body.split(" ");
-  const cleanedWords = words.map((word) => {
-    if (badWords.includes(word.toLowerCase())) {
-      return "****";
+    if (!body || typeof body !== "string" || body.length > 140) {
+      throw new BadRequestError("Chirp is too long. Max length is 140");
     }
-    return word;
-  });
 
-  const cleanedBody = cleanedWords.join(" ");
+    if (!userId) {
+      throw new BadRequestError("userId is required");
+    }
 
-  return res.status(200).json({
-    cleanedBody: cleanedBody
-  });
+    const badWords = ["kerfuffle", "sharbert", "fornax"];
+    const words = body.split(" ");
+    const cleanedWords = words.map((word) => {
+      if (badWords.includes(word.toLowerCase())) {
+        return "****";
+      }
+      return word;
+    });
+    const cleanedBody = cleanedWords.join(" ");
+
+    const newChirp = await createChirp({
+      body: cleanedBody,
+      userId,
+    });
+
+    return res.status(201).json(newChirp);
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
