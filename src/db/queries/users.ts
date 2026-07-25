@@ -10,3 +10,6 @@ export async function createUser(user: NewUser) {
 
   return result;
 }
+export async function resetUsers() {
+  await db.delete(users);
+}
