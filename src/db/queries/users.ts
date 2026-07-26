@@ -1,14 +1,17 @@
+import { eq } from "drizzle-orm"; 
 import { db } from "../index.js";
 import { users } from "../schema.js";
-import { InferInsertModel } from "drizzle-orm";
 
-export type NewUser = InferInsertModel<typeof users>;
-
-export async function createUser(user: NewUser) {
-  const [newUser] = await db.insert(users).values(user).returning();
+export async function createUser(data: { email: string; hashedPassword: string }) {
+  const [newUser] = await db.insert(users).values(data).returning();
   return newUser;
 }
 
 export async function resetUsers() {
   await db.delete(users);
+}
+
+export async function getUserByEmail(email: string) {
+  const [user] = await db.select().from(users).where(eq(users.email, email));
+  return user;
 }
