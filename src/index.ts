@@ -4,9 +4,23 @@ import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { config, apiConfig } from "./config.js";
-import { createUser, getUserByEmail, resetUsers } from "./db/queries/users.js";
+import {
+  createUser,
+  getUserByEmail,
+  resetUsers,
+  createRefreshToken,
+  getUserFromRefreshToken,
+  revokeRefreshToken,
+} from "./db/queries/users.js";
 import { createChirp, getAllChirps, getChirpById } from "./db/queries/chirps.js";
-import { hashPassword, checkPasswordHash, makeJWT, validateJWT, getBearerToken } from "./auth.js";
+import {
+  hashPassword,
+  checkPasswordHash,
+  makeJWT,
+  validateJWT,
+  getBearerToken,
+  makeRefreshToken,
+} from "./auth.js";
 
 const migrationClient = postgres(config.db.url, { max: 1 });
 await migrate(drizzle(migrationClient), config.db.migrationConfig);
@@ -111,34 +125,64 @@ app.post("/api/users", async (req: Request, res: Response, next: NextFunction) =
 
 app.post("/api/login", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password, expiresInSeconds } = req.body;
-
+    const { email, password } = req.body;
     if (!email || !password) {
       throw new UnauthorizedError("incorrect email or password");
     }
 
     const user = await getUserByEmail(email);
-    if (!user) {
+    if (!user || !(await checkPasswordHash(password, user.hashedPassword))) {
       throw new UnauthorizedError("incorrect email or password");
     }
 
-    const isValid = await checkPasswordHash(password, user.hashedPassword);
-    if (!isValid) {
-      throw new UnauthorizedError("incorrect email or password");
-    }
+    const accessToken = makeJWT(user.id, 3600, config.jwtSecret);
 
-    let expiresIn = 3600;
-    if (typeof expiresInSeconds === "number" && expiresInSeconds < 3600) {
-      expiresIn = expiresInSeconds;
-    }
+    const refreshTokenStr = makeRefreshToken();
+    const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
 
-    const token = makeJWT(user.id, expiresIn, config.jwtSecret);
+    await createRefreshToken({
+      token: refreshTokenStr,
+      userId: user.id,
+      expiresAt,
+    });
 
     const { hashedPassword: _, ...userWithoutPassword } = user;
+
     return res.status(200).json({
       ...userWithoutPassword,
-      token,
+      token: accessToken,
+      refreshToken: refreshTokenStr,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post("/api/refresh", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const refreshToken = getBearerToken(req);
+    const user = await getUserFromRefreshToken(refreshToken);
+
+    if (!user) {
+      throw new UnauthorizedError("Invalid, expired, or revoked refresh token");
+    }
+
+    const newAccessToken = makeJWT(user.id, 3600, config.jwtSecret);
+
+    return res.status(200).json({
+      token: newAccessToken,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post("/api/revoke", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const refreshToken = getBearerToken(req);
+    await revokeRefreshToken(refreshToken);
+
+    return res.status(204).send();
   } catch (err) {
     next(err);
   }
@@ -222,7 +266,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 
   console.log(err);
   return res.status(500).json({
-    error: "Something went wrong on our end"
+    error: "Something went wrong on our end",
   });
 });
 
