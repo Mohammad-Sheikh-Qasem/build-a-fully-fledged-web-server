@@ -298,7 +298,14 @@ app.post("/api/chirps", async (req: Request, res: Response, next: NextFunction) 
 
 app.get("/api/chirps", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const allChirps = await getAllChirps();
+    let authorId = "";
+    const authorIdQuery = req.query.authorId;
+
+    if (typeof authorIdQuery === "string") {
+      authorId = authorIdQuery;
+    }
+
+    const allChirps = await getAllChirps(authorId || undefined);
     return res.status(200).json(allChirps);
   } catch (err) {
     next(err);
