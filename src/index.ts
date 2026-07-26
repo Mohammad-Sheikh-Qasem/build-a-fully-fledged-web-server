@@ -6,7 +6,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { config, apiConfig } from "./config.js";
 import { createUser, getUserByEmail, resetUsers } from "./db/queries/users.js";
 import { createChirp, getAllChirps, getChirpById } from "./db/queries/chirps.js";
-import { hashPassword, checkPasswordHash } from "./auth.js"; // استيراد دوال الـ Auth
+import { hashPassword, checkPasswordHash, makeJWT, validateJWT, getBearerToken } from "./auth.js";
 
 const migrationClient = postgres(config.db.url, { max: 1 });
 await migrate(drizzle(migrationClient), config.db.migrationConfig);
@@ -111,7 +111,7 @@ app.post("/api/users", async (req: Request, res: Response, next: NextFunction) =
 
 app.post("/api/login", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, expiresInSeconds } = req.body;
 
     if (!email || !password) {
       throw new UnauthorizedError("incorrect email or password");
@@ -127,8 +127,18 @@ app.post("/api/login", async (req: Request, res: Response, next: NextFunction) =
       throw new UnauthorizedError("incorrect email or password");
     }
 
+    let expiresIn = 3600;
+    if (typeof expiresInSeconds === "number" && expiresInSeconds < 3600) {
+      expiresIn = expiresInSeconds;
+    }
+
+    const token = makeJWT(user.id, expiresIn, config.jwtSecret);
+
     const { hashedPassword: _, ...userWithoutPassword } = user;
-    return res.status(200).json(userWithoutPassword);
+    return res.status(200).json({
+      ...userWithoutPassword,
+      token,
+    });
   } catch (err) {
     next(err);
   }
@@ -136,14 +146,18 @@ app.post("/api/login", async (req: Request, res: Response, next: NextFunction) =
 
 app.post("/api/chirps", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { body, userId } = req.body;
+    const { body } = req.body;
 
     if (!body || typeof body !== "string" || body.length > 140) {
       throw new BadRequestError("Chirp is too long. Max length is 140");
     }
 
-    if (!userId) {
-      throw new BadRequestError("userId is required");
+    let userId: string;
+    try {
+      const token = getBearerToken(req);
+      userId = validateJWT(token, config.jwtSecret);
+    } catch (err) {
+      throw new UnauthorizedError("Unauthorized");
     }
 
     const badWords = ["kerfuffle", "sharbert", "fornax"];
