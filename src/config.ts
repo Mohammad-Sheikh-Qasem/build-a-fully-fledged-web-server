@@ -14,13 +14,16 @@ function envOrThrow(key: string): string {
 export type APIConfig = {
   fileserverHits: number;
   platform: string;
+  polkaKey: string;
+};
+
+export const apiConfig: APIConfig = {
+  fileserverHits: 0,
+  platform: envOrThrow("PLATFORM"),
+  polkaKey: process.env.POLKA_KEY || "",
 };
 
 export const config = {
-  api: {
-    fileserverHits: 0,
-    platform: envOrThrow("PLATFORM"),
-  },
   db: {
     url: envOrThrow("DB_URL"),
     migrationConfig: {
@@ -28,6 +31,5 @@ export const config = {
     },
   },
   jwtSecret: envOrThrow("JWT_SECRET"),
+  polkaKey: process.env.POLKA_KEY || "",
 };
-
-export const apiConfig: APIConfig = config.api;
