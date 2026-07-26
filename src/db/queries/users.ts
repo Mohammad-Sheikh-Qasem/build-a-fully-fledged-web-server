@@ -14,6 +14,19 @@ export async function createRefreshToken(data: { token: string; userId: string; 
   return newToken;
 }
 
+export async function updateUserChirpyRed(id: string, isChirpyRed: boolean) {
+  const [updatedUser] = await db
+    .update(users)
+    .set({
+      isChirpyRed,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, id))
+    .returning();
+
+  return updatedUser;
+}
+
 export async function updateUser(id: string, email: string, hashedPassword: string) {
   const [updatedUser] = await db
     .update(users)
