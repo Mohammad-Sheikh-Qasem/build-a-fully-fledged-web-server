@@ -13,7 +13,12 @@ import {
   revokeRefreshToken,
   updateUser,
 } from "./db/queries/users.js";
-import { createChirp, getAllChirps, getChirpById } from "./db/queries/chirps.js";
+import {
+  createChirp,
+  getAllChirps,
+  getChirpById,
+  deleteChirp,
+} from "./db/queries/chirps.js";
 import {
   hashPassword,
   checkPasswordHash,
@@ -276,6 +281,35 @@ app.get("/api/chirps/:chirpId", async (req: Request, res: Response, next: NextFu
     }
 
     return res.status(200).json(chirp);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.delete("/api/chirps/:chirpId", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const chirpId = req.params.chirpId as string;
+
+    let userId: string;
+    try {
+      const token = getBearerToken(req);
+      userId = validateJWT(token, config.jwtSecret);
+    } catch (err) {
+      throw new UnauthorizedError("Unauthorized");
+    }
+
+    const chirp = await getChirpById(chirpId);
+    if (!chirp) {
+      throw new NotFoundError("Chirp not found");
+    }
+
+    if (chirp.userId !== userId) {
+      throw new ForbiddenError("Forbidden");
+    }
+
+    await deleteChirp(chirpId);
+
+    return res.status(204).send();
   } catch (err) {
     next(err);
   }
