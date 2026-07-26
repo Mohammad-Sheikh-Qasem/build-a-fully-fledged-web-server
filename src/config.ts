@@ -1,6 +1,7 @@
 import process from "node:process";
+import dotenv from "dotenv";
 
-process.loadEnvFile();
+dotenv.config();
 
 function envOrThrow(key: string): string {
   const value = process.env[key];
@@ -26,6 +27,7 @@ export const config = {
       migrationsFolder: "./src/db/migrations",
     },
   },
+  jwtSecret: envOrThrow("JWT_SECRET"),
 };
 
 export const apiConfig: APIConfig = config.api;
