@@ -11,6 +11,7 @@ import {
   createRefreshToken,
   getUserFromRefreshToken,
   revokeRefreshToken,
+  updateUser,
 } from "./db/queries/users.js";
 import { createChirp, getAllChirps, getChirpById } from "./db/queries/chirps.js";
 import {
@@ -53,6 +54,36 @@ const app = express();
 const PORT = 8080;
 
 app.use(express.json());
+
+app.put("/api/users", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    let userId: string;
+    try {
+      const token = getBearerToken(req);
+      userId = validateJWT(token, config.jwtSecret);
+    } catch (err) {
+      throw new UnauthorizedError("Unauthorized");
+    }
+
+    const { email, password } = req.body;
+    if (!email || !password) {
+      throw new BadRequestError("Email and password are required");
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    const updatedUser = await updateUser(userId, email, hashedPassword);
+    if (!updatedUser) {
+      throw new NotFoundError("User not found");
+    }
+
+    const { hashedPassword: _, ...userWithoutPassword } = updatedUser;
+
+    return res.status(200).json(userWithoutPassword);
+  } catch (err) {
+    next(err);
+  }
+});
 
 export const middlewareLogResponses = (req: Request, res: Response, next: NextFunction) => {
   res.on("finish", () => {
