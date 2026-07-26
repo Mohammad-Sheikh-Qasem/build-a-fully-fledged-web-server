@@ -14,6 +14,20 @@ export async function createRefreshToken(data: { token: string; userId: string; 
   return newToken;
 }
 
+export async function updateUser(id: string, email: string, hashedPassword: string) {
+  const [updatedUser] = await db
+    .update(users)
+    .set({
+      email,
+      hashedPassword,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, id))
+    .returning();
+
+  return updatedUser;
+}
+
 export async function getUserFromRefreshToken(token: string) {
   const [result] = await db
     .select({
