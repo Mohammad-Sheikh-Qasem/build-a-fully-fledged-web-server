@@ -27,6 +27,7 @@ import {
   validateJWT,
   getBearerToken,
   makeRefreshToken,
+  getAPIKey,
 } from "./auth.js";
 
 const migrationClient = postgres(config.db.url, { max: 1 });
@@ -227,8 +228,16 @@ app.post("/api/revoke", async (req: Request, res: Response, next: NextFunction) 
 
 app.post("/api/polka/webhooks", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const event = req.body?.event;
-    const data = req.body?.data;
+    try {
+      const apiKey = getAPIKey(req);
+      if (apiKey !== apiConfig.polkaKey) {
+        throw new UnauthorizedError("Unauthorized");
+      }
+    } catch (err) {
+      throw new UnauthorizedError("Unauthorized");
+    }
+
+    const { event, data } = req.body;
 
     if (event !== "user.upgraded") {
       return res.status(204).send();
@@ -236,7 +245,7 @@ app.post("/api/polka/webhooks", async (req: Request, res: Response, next: NextFu
 
     const userId = data?.user_id || data?.userId;
     if (!userId) {
-      return res.status(204).send();
+      throw new BadRequestError("Invalid webhook data");
     }
 
     const updatedUser = await updateUserChirpyRed(userId, true);
