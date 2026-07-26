@@ -15,6 +15,13 @@
       "when": 1784974723360,
       "tag": "0001_steady_rick_jones",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785054874433,
+      "tag": "0002_absurd_cable",
+      "breakpoints": true
     }
   ]
 }
