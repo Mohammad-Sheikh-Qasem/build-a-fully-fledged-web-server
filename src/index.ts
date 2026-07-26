@@ -12,6 +12,7 @@ import {
   getUserFromRefreshToken,
   revokeRefreshToken,
   updateUser,
+  updateUserChirpyRed,
 } from "./db/queries/users.js";
 import {
   createChirp,
@@ -217,6 +218,31 @@ app.post("/api/revoke", async (req: Request, res: Response, next: NextFunction) 
   try {
     const refreshToken = getBearerToken(req);
     await revokeRefreshToken(refreshToken);
+
+    return res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post("/api/polka/webhooks", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const event = req.body?.event;
+    const data = req.body?.data;
+
+    if (event !== "user.upgraded") {
+      return res.status(204).send();
+    }
+
+    const userId = data?.user_id || data?.userId;
+    if (!userId) {
+      return res.status(204).send();
+    }
+
+    const updatedUser = await updateUserChirpyRed(userId, true);
+    if (!updatedUser) {
+      throw new NotFoundError("User not found");
+    }
 
     return res.status(204).send();
   } catch (err) {
