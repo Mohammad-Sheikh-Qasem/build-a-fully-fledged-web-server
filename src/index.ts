@@ -4,8 +4,9 @@ import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { config, apiConfig } from "./config.js";
-import { createUser, resetUsers } from "./db/queries/users.js";
+import { createUser, getUserByEmail, resetUsers } from "./db/queries/users.js";
 import { createChirp, getAllChirps, getChirpById } from "./db/queries/chirps.js";
+import { hashPassword, checkPasswordHash } from "./auth.js"; // استيراد دوال الـ Auth
 
 const migrationClient = postgres(config.db.url, { max: 1 });
 await migrate(drizzle(migrationClient), config.db.migrationConfig);
@@ -92,13 +93,42 @@ app.post("/admin/reset", async (req: Request, res: Response, next: NextFunction)
 
 app.post("/api/users", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email } = req.body;
-    if (!email) {
-      throw new BadRequestError("Email is required");
+    const { email, password } = req.body;
+    if (!email || !password) {
+      throw new BadRequestError("Email and password are required");
     }
 
-    const newUser = await createUser({ email });
-    return res.status(201).json(newUser);
+    const hashedPassword = await hashPassword(password);
+    const newUser = await createUser({ email, hashedPassword });
+
+    const { hashedPassword: _, ...userWithoutPassword } = newUser;
+
+    return res.status(201).json(userWithoutPassword);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post("/api/login", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      throw new UnauthorizedError("incorrect email or password");
+    }
+
+    const user = await getUserByEmail(email);
+    if (!user) {
+      throw new UnauthorizedError("incorrect email or password");
+    }
+
+    const isValid = await checkPasswordHash(password, user.hashedPassword);
+    if (!isValid) {
+      throw new UnauthorizedError("incorrect email or password");
+    }
+
+    const { hashedPassword: _, ...userWithoutPassword } = user;
+    return res.status(200).json(userWithoutPassword);
   } catch (err) {
     next(err);
   }
