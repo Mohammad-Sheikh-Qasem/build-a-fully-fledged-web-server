@@ -2,6 +2,12 @@ import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import type { JwtPayload } from "jsonwebtoken";
 import { Request } from "express";
+import crypto from "node:crypto";
+
+export function makeRefreshToken(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
+
 
 type payload = Pick<JwtPayload, "iss" | "sub" | "iat" | "exp">;
 
