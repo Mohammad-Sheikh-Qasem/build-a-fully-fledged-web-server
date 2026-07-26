@@ -50,3 +50,23 @@ Make sure you have the following installed on your machine:
    ```bash
    git clone [https://github.com/your-username/building_a_fully_fledged_web_server.git](https://github.com/your-username/building_a_fully_fledged_web_server.git)
    cd building_a_fully_fledged_web_server
+
+
+
+## 🏃 Running the Application
+
+### 1️⃣ Prerequisites
+Ensure you have the following installed and running:
+- **Node.js** (v18 or higher)
+- **PostgreSQL** database (running locally or via Docker)
+
+---
+
+### 2️⃣ Environment Setup
+Create a `.env` file in the root directory and configure your environment variables:
+
+```env
+DB_URL="postgres://postgres:postgres@localhost:5432/chirpy"
+JWT_SECRET="your-super-secret-jwt-key"
+POLKA_KEY="your-polka-api-key"
+PLATFORM="dev"
